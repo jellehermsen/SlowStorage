@@ -18,23 +18,17 @@ var SlowStorage = function() {
  * Initializes the SlowStorage paths etc.
  */
 SlowStorage.prototype.init = function(callback) {
-   var that = this;
-   window.requestFileSystem(
-        LocalFileSystem.PERSISTENT, 0,
-        function onFileSystemSuccess(fileSystem) {
-            that.fileSystem = fileSystem;
-            fileSystem.root.getFile(
-                "dummy", {create: true, exclusive: false},
-                function gotFileEntry(fileEntry){
-                    var sPath = fileEntry.fullPath.replace("dummy","");
-                    fileEntry.remove();
-                    dataDir = fileSystem.root.getDirectory(sPath + 'slowstorage', {create: true});
-                    that.path = sPath + 'slowstorage' + '/';
-                    callback(true);
-                },
-            function(){callback(false);});
-        },
-     function(){callback(false);});
+    var that = this;
+    if (navigator.userAgent.indexOf("Android") > 0) {
+        this.path = cordova.file.externalApplicationStorageDirectory;
+    } else {
+        this.path = cordova.file.dataDirectory; 
+    }
+    this.path = this.path.replace('file://','');
+    window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, function(fileSystem){
+        that.fileSystem = fileSystem;
+        callback();
+    });
 };
 
 /**
@@ -65,14 +59,30 @@ SlowStorage.prototype.getItem = function(name, callback) {
 };
 
 /**
+ * Removes an item from storage by name
+ * @param {string} name The name used for storing. Might not reflect the 
+ *                      actual filename that is used.
+ * @param {function} callback called with a boolean argument
+ */
+
+SlowStorage.prototype.removeItem = function(name, callback) {
+    callback = typeof callback !== 'undefined' ? callback : function(result){};
+    this.fileSystem.root.getFile(this.path + this.hash(name), {create: false, exclusive: false}, function(entry){
+        entry.remove(function(){callback(true)}, function(){callback(false)});
+    }, 
+    function(){callback(false)});
+};
+
+/**
  * Sets an item in the storage
  * @param {string} name The item name
  * @param {string} value The item value
- * @param {function}
+ * @param {function} callback called with a boolean argument
  */
 SlowStorage.prototype.setItem = function(name, value, callback) {
     callback = typeof callback !== 'undefined' ? callback : function(result){};
     this.fileSystem.root.getFile(this.path + this.hash(name), {create: true, exclusive: false}, function(entry){
+        entry.setMetadata(function(){console.log("Cloud backup DISABLED")}, null, { "com.apple.MobileBackup": 1});
         entry.createWriter(function(writer){
             writer.write(value);         
             callback(true);
@@ -95,7 +105,6 @@ SlowStorage.prototype.hash = function(str){
     }
     return hash;
 };
-
 
 /**
  * Download given file into the SlowStorage

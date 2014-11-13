@@ -5,7 +5,7 @@ SlowStorage is a tiny Javascript library that you can use in conjunction with Ap
 
 Every value you set is saved as a seperate file. To create a proper file name this library uses a simple hashing function. 
 
-**TODO: Add a removeItem function**
+
 
 Usage
 -----
@@ -34,5 +34,17 @@ Usage
         console.log("Result is: " + result);
     });
 
+### Removing an item
+    slowStorage.removeItem('itemname',function(result){
+        if(result === false) return console.log("Could not remove item");
+        console.log("The item is removed succesfully");
+    });
+
 ### Get the internal Slowstorage path
     console.log(slowStorage.getPath());
+
+
+Changelog
+---------
+2014-11-13: I have modified the system so that the files are not backuped up to iCloud on iOS and have added a removeItem function.
+
